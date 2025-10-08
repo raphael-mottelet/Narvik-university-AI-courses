@@ -1,0 +1,16 @@
+column,description
+energy-kcal_100g,Kcal per 100g (filled from macros if missing).
+fat_100g,Total fat g/100g.
+saturated-fat_100g,Saturated fat g/100g.
+carbohydrates_100g,Carbohydrates g/100g.
+sugars_100g,Sugars g/100g.
+fiber_100g,Fiber g/100g.
+proteins_100g,Protein g/100g.
+salt_100g,Salt g/100g.
+price_nok_total,Synthetic NOK total (raw).
+carbon_kg_total,"Synthetic carbon footprint (kg CO2e, raw)."
+taste_balance,"Gaussian sweet-spots: sugar≈10, fat≈10, salt≈0.4, fiber≈3 (avg 0..1)."
+health_score,Nutri-Score mapped to INTEGER A=1 … E=5; unknown→3 (neutral).
+price_norm,Winsorized/normalized price to 0..1 (higher=more expensive).
+carbon_norm,Winsorized/normalized carbon to 0..1 (higher=worse).
+macro_balance,Closeness to C/F/P≈50/30/20 by grams (0..1).
