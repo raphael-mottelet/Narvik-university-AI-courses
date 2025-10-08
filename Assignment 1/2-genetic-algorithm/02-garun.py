@@ -21,31 +21,45 @@ gadata = _load_module("00-gadata.py", "gadata")
 gaengine = _load_module("01-gaengine.py", "gaengine")
 
 CONFIG = {
-    "full_csv": os.path.join("..", "data", "openfoodfacts", "step13-vector-full.csv"),
-    "ingredients_col": "",
-    "out": os.path.join("..", "data", "mlready", "ga-output.csv"),
-    "wt": 1.5,
-    "wc": 1.0,
-    "wh": 1.0,
-    "wd": 1.0,
-    "pop": 200,
-    "gens": 300,
-    "elite": 2,
-    "tournament": 3,
-    "crossover_rate": 0.9,
-    "mutation_rate": 0.08,
-    "seed": 42,
-    "log_every": 10,
-    "min_count": 5,
-    "top_vocab": 300,
-    "min_k": 4,
-    "max_k": 10,
-    "soft_cap": 10,
-    "soft_penalty": 0.5,
-    "banlist": "",
-    "kill_age": 20,
-    "kill_penalty": 1e12,
-    "blacklist": {"vegetable", "syrup"},
+    "full_csv": os.path.join("..", "data", "openfoodfacts", "step13-vector-full.csv"),  # input vectors with ingredients_tags + taste/price/health/carbon
+    "ingredients_col": "",                                                               # leave empty to auto-detect; set a column name to force it
+    "out": os.path.join("..", "data", "mlready", "ga-output.csv"),                       # output file path (kept exactly as you asked)
+
+    "wt": 1.5,    # weight for taste (higher = prioritize taste)
+    "wc": 1.0,    # weight for cost via (1 - price_norm) (higher = prioritize cheaper)
+    "wh": 1.0,    # weight for health (A→1.0 … E→0.0) (higher = prioritize healthier)
+    "wd": 1.0,    # weight for environmental impact penalty (higher = penalize carbon more)
+
+    "pop": 200,       # population size
+    "gens": 300,      # generations (epochs)
+    "elite": 2,       # number of elites copied directly each generation
+    "tournament": 3,  # tournament size for parent selection (3 is a mild pressure)
+    "crossover_rate": 0.9,  # probability of crossover (binary uniform)
+    "mutation_rate": 0.06,  # mutation probability per gene (lower to avoid blowing up bit-count)
+
+    "seed": 42,        # RNG seed for reproducibility
+    "log_every": 10,   # print progress every N generations
+
+    "min_count": 10,   # ignore very-rare tokens (<10 occurrences) to drop noise like 'birmingham', 'vegetali'
+    "top_vocab": 200,  # keep only the top-N most frequent tokens after filtering to stabilize combos
+    "min_k": 4,        # minimum ingredients per combo
+    "max_k": 10,       # hard cap on ingredients (violations get a huge negative fitness)
+    "soft_cap": 8,     # soft discouragement threshold (above this, apply soft_penalty)
+    "soft_penalty": 2.0,  # strength of quadratic penalty for k > soft_cap (pushes toward 6–8 items)
+
+    "banlist": "",        # optional path to a text file with banned “a + b + c” patterns (one per line); empty disables
+    "kill_age": 20,       # if the same champion persists this many generations, kill its clones (diversity protection)
+    "kill_penalty": 1e12, # magnitude for hard penalties (size violations, banned combos, clone-kill)
+
+    "blacklist": {        # tokens to exclude from the vocabulary (normalize language noise, additives, packaging terms)
+        "packet", "birmingham", "aro", "mam", "vegetali", "vegetale", "palme", "palmfat",
+        "palmkernel", "palmiste", "palmist", "oleomargarina", "buttert", "sweetner", "sugart",
+        "ricestarch", "cornstrach", "cornstarch", "seasalt", "unsweetened", "monooleate",
+        "monoestearate", "stearoyl", "stearate", "tartrazina", "molybdate", "guanylate",
+        "aspartamo", "menaquinone", "curcumine", "glicerol", "glicerolo", "glicerina",
+        "shortening", "butterscotch", "brownie", "waffle", "cupcake", "cheesecake",
+        "vegetal", "palma", "palme", "palma", "papa", "patata", "pellet", "seedless"
+    }, 
 }
 
 def main():
