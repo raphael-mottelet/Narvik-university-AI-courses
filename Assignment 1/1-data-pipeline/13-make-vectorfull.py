@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import re
 
-DEF_IN  = os.path.join("..", "data", "openfoodfacts", "step11-products.csv")
+DEF_IN  = os.path.join("..", "data", "openfoodfacts", "step10.csv")
 DEF_OUT = os.path.join("..", "data", "openfoodfacts", "step13-vector-full.csv")
 
 def qclip01(s: pd.Series, qlo=0.01, qhi=0.99) -> pd.Series:
