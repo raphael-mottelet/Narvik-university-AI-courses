@@ -1,16 +1,12 @@
-
 from __future__ import annotations
 import numpy as np
 from dataclasses import dataclass
 
-# GA engine for binary ingredient chromosomes (and real-valued if needed)
-# Supports elitism, tournament selection, uniform crossover (binary), BLX-α (real)
-# Adds champion clone kill after a given age to maintain diversity
 
 @dataclass
 class GAParams:
-    pop_size: int = 120
-    gens: int = 150
+    pop_size: int = 200
+    gens: int = 300
     elite: int = 2
     tournament: int = 3
     crossover_rate: float = 0.9

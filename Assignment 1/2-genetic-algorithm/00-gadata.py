@@ -146,19 +146,22 @@ def aggregate_components(bits: np.ndarray, stats: np.ndarray) -> tuple[float, fl
     sel = np.nonzero(bits > 0.5)[0]
     if len(sel) == 0:
         return 0.0, 1.0, 5, 1.0
-    taste = float(np.clip(stats[sel, 0].mean(), 0.0, 1.0))
+    taste_sum = float(stats[sel, 0].sum())
+    taste = float(np.clip(1.0 - np.exp(-taste_sum), 0.0, 1.0))
     price = float(np.clip(stats[sel, 1].mean(), 0.0, 1.0))
     health = int(np.rint(np.clip(stats[sel, 2].mean(), 1.0, 5.0)))
     carbon = float(np.clip(stats[sel, 3].mean(), 0.0, 1.0))
     return taste, price, health, carbon
 
 
-def fitness_ingredients(bits: np.ndarray, stats: np.ndarray, wt=1.0, wc=1.0, wh=1.0, wd=1.0, min_k: int = 1, max_k: int = 999, banned: list[frozenset[int]] | None = None) -> float:
+def fitness_ingredients(bits: np.ndarray, stats: np.ndarray, wt=1.5, wc=1.0, wh=1.0, wd=1.0, min_k: int = 4, max_k: int = 10, banned: list[frozenset[int]] | None = None, soft_cap: int | None = 10, soft_penalty: float = 0.5, hard_penalty: float = 1e12) -> float:
     if banned and is_banned(bits, banned):
-        return -1e12
+        return -hard_penalty
     k = int((bits > 0.5).sum())
     if k < min_k or k > max_k:
-        return -1e10
+        return -hard_penalty
     taste, price, health, carbon = aggregate_components(bits, stats)
     fit = wt * taste + wc * (1.0 - price) + wh * float(health_to_unit(health)) - wd * carbon
+    if soft_cap is not None and k > soft_cap and soft_penalty > 0.0:
+        fit -= soft_penalty * (k - soft_cap) ** 2
     return float(fit)

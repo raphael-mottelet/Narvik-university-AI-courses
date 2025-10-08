@@ -1,16 +1,10 @@
 from __future__ import annotations
 import os
-import argparse
-import importlib.util
-import sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
-
-# Ingredient-combination GA runner
-# Initializes binary ingredient chromosomes
-# Scores fitness by aggregating ingredient components with simple averages
-# Exports CSV without fitness
+import importlib.util
+import sys
 
 def _load_module(filename: str, alias: str):
     here = Path(__file__).resolve().parent
@@ -23,65 +17,89 @@ def _load_module(filename: str, alias: str):
     spec.loader.exec_module(mod)
     return mod
 
-
 gadata = _load_module("00-gadata.py", "gadata")
 gaengine = _load_module("01-gaengine.py", "gaengine")
 
-DEF_FULL = os.path.join("..", "data", "openfoodfacts", "step13-vector-full.csv")
-DEF_OUT = os.path.join("..", "data", "mlready", "ga-output.csv")
-
+CONFIG = {
+    "full_csv": os.path.join("..", "data", "openfoodfacts", "step13-vector-full.csv"),
+    "ingredients_col": "",
+    "out": os.path.join("..", "data", "mlready", "ga-output.csv"),
+    "wt": 1.5,
+    "wc": 1.0,
+    "wh": 1.0,
+    "wd": 1.0,
+    "pop": 200,
+    "gens": 300,
+    "elite": 2,
+    "tournament": 3,
+    "crossover_rate": 0.9,
+    "mutation_rate": 0.08,
+    "seed": 42,
+    "log_every": 10,
+    "min_count": 5,
+    "top_vocab": 300,
+    "min_k": 4,
+    "max_k": 10,
+    "soft_cap": 10,
+    "soft_penalty": 0.5,
+    "banlist": "",
+    "kill_age": 20,
+    "kill_penalty": 1e12,
+    "blacklist": {"vegetable", "syrup"},
+}
 
 def main():
-    ap = argparse.ArgumentParser(description="Ingredient-combination GA")
-    ap.add_argument("--full-csv", default=DEF_FULL)
-    ap.add_argument("--ingredients-col", default="")
-    ap.add_argument("--out", default=DEF_OUT)
-    ap.add_argument("--wt", type=float, default=1.0)
-    ap.add_argument("--wc", type=float, default=1.0)
-    ap.add_argument("--wh", type=float, default=1.0)
-    ap.add_argument("--wd", type=float, default=1.0)
-    ap.add_argument("--pop", type=int, default=120)
-    ap.add_argument("--gens", type=int, default=150)
-    ap.add_argument("--elite", type=int, default=2)
-    ap.add_argument("--tour", type=int, default=3)
-    ap.add_argument("--cx", type=float, default=0.9)
-    ap.add_argument("--mut", type=float, default=0.08)
-    ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--log-every", type=int, default=10)
-    ap.add_argument("--min-count", type=int, default=5)
-    ap.add_argument("--top-vocab", type=int, default=200)
-    ap.add_argument("--min-k", type=int, default=3)
-    ap.add_argument("--max-k", type=int, default=8)
-    ap.add_argument("--banlist", default="")
-    ap.add_argument("--kill-age", type=int, default=20)
-    ap.add_argument("--kill-penalty", type=float, default=1e12)
-    args = ap.parse_args()
+    print("=== Run GA ===")
+    print("All good for now")
 
-    df = gadata.load_full(args.full_csv, ingredients_col=args.ingredients_col)
-    blacklist = {"vegetable", "syrup"}  # keep common generic tokens from dominating
-    vocab, stats, counts = gadata.build_ingredient_stats(df, min_count=args.min_count, top_k=args.top_vocab, blacklist=blacklist)
-    banned_sets = gadata.parse_banlist(args.banlist, vocab)
+    df = gadata.load_full(CONFIG["full_csv"], ingredients_col=CONFIG["ingredients_col"])
+    vocab, stats, counts = gadata.build_ingredient_stats(
+        df,
+        min_count=CONFIG["min_count"],
+        top_k=CONFIG["top_vocab"],
+        blacklist=CONFIG["blacklist"],
+    )
+    banned_sets = gadata.parse_banlist(CONFIG["banlist"], vocab)
 
     bounds = [(0.0, 1.0)] * len(vocab)
-    init_pop = gadata.seed_ingredient_population(len(vocab), args.pop, min_k=args.min_k, max_k=args.max_k, seed=args.seed)
+    init_pop = gadata.seed_ingredient_population(
+        len(vocab),
+        CONFIG["pop"],
+        min_k=CONFIG["min_k"],
+        max_k=CONFIG["max_k"],
+        seed=CONFIG["seed"],
+    )
 
     def fit_fn(bits):
-        return gadata.fitness_ingredients(bits, stats, wt=args.wt, wc=args.wc, wh=args.wh, wd=args.wd, min_k=args.min_k, max_k=args.max_k, banned=banned_sets)
+        return gadata.fitness_ingredients(
+            bits,
+            stats,
+            wt=CONFIG["wt"],
+            wc=CONFIG["wc"],
+            wh=CONFIG["wh"],
+            wd=CONFIG["wd"],
+            min_k=CONFIG["min_k"],
+            max_k=CONFIG["max_k"],
+            banned=banned_sets,
+            soft_cap=CONFIG["soft_cap"],
+            soft_penalty=CONFIG["soft_penalty"],
+            hard_penalty=CONFIG["kill_penalty"],
+        )
 
     params = gaengine.GAParams(
-        pop_size=args.pop,
-        gens=args.gens,
-        elite=args.elite,
-        tournament=args.tour,
-        crossover_rate=args.cx,
-        mutation_rate=args.mut,
+        pop_size=CONFIG["pop"],
+        gens=CONFIG["gens"],
+        elite=CONFIG["elite"],
+        tournament=CONFIG["tournament"],
+        crossover_rate=CONFIG["crossover_rate"],
+        mutation_rate=CONFIG["mutation_rate"],
         blx_alpha=0.2,
         mut_sigma=0.1,
-        seed=args.seed,
-        log_every=args.log_every,
+        seed=CONFIG["seed"],
+        log_every=CONFIG["log_every"],
         binary=True,
-        kill_copy_age=args.kill_age,
-        kill_penalty=args.kill_penalty,
+        kill_copy_age=CONFIG["kill_age"],
+        kill_penalty=CONFIG["kill_penalty"],
     )
 
     ga = gaengine.GA(fitness_fn=fit_fn, bounds=bounds, params=params, init_pop=init_pop)
@@ -107,10 +125,9 @@ def main():
         )
 
     out = pd.DataFrame(rows)
-    Path(Path(args.out).parent).mkdir(parents=True, exist_ok=True)
-    out.to_csv(args.out, index=False)
-    print(f"[GA] mode=ingredients  saved -> {args.out}")
-
+    Path(Path(CONFIG["out"]).parent).mkdir(parents=True, exist_ok=True)
+    out.to_csv(CONFIG["out"], index=False)
+    print(f"[GA] mode=ingredients  saved -> {CONFIG['out']}")
 
 if __name__ == "__main__":
     main()
