@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import re
 
-DEF_IN  = os.path.join("..", "data", "openfoodfacts", "step10.csv")
+DEF_IN  = os.path.join("..", "data", "openfoodfacts", "step11-products.csv")
 DEF_OUT = os.path.join("..", "data", "openfoodfacts", "step13-vector-full.csv")
 
 def qclip01(s: pd.Series, qlo=0.01, qhi=0.99) -> pd.Series:
@@ -118,18 +118,11 @@ def build_full(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 def main():
-    ap = argparse.ArgumentParser(description="Build FULL vectors for downstream ML and GA (keep ingredients).")
-    ap.add_argument("--input",  default=DEF_IN,  help="Raw products CSV")
-    ap.add_argument("--output", default=DEF_OUT, help="Output CSV (full vectors)")
-    args = ap.parse_args()
-
-    df = pd.read_csv(args.input, low_memory=False)
+    df = pd.read_csv(DEF_IN, low_memory=False)
     full = build_full(df)
-
-    os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
-    full.to_csv(args.output, index=False)
-
-    print(f"[vector-full] rows={len(full)}  saved -> {os.path.abspath(args.output)}")
+    os.makedirs(os.path.dirname(os.path.abspath(DEF_OUT)), exist_ok=True)
+    full.to_csv(DEF_OUT, index=False)
+    print(f"[vector-full] rows={len(full)}  saved -> {os.path.abspath(DEF_OUT)}")
     print(full.head(3).to_string(index=False))
 
 if __name__ == "__main__":
